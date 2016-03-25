@@ -25,6 +25,8 @@ public class Robot extends IterativeRobot {
 	private boolean autoArm;
 	private boolean autoDrive;
 	private long autoTime;
+	private boolean shootFlag;
+	private long shootTime;
 	
     public void robotInit() {
     	fr = new Spark(2);
@@ -43,6 +45,14 @@ public class Robot extends IterativeRobot {
 		autoArm = false;
 		autoDrive = false;
 		autoTime = System.currentTimeMillis();
+		shootFlag = false;
+		shootTime = System.currentTimeMillis();
+		
+		fr.setInverted(true);
+		fl.setInverted(true);
+		br.setInverted(true);
+		bl.setInverted(true);
+		rd.setSafetyEnabled(false);
     }
     
 	public void autonomousInit() {
@@ -58,19 +68,34 @@ public class Robot extends IterativeRobot {
 			autoArm = false;
 		}
 
-		if(System.currentTimeMillis() < autoTime + 2000) {
+		if(System.currentTimeMillis() < autoTime + 3000 && System.currentTimeMillis() - autoTime > 1000) {
 			autoDrive = true;
 		} else {
 			autoDrive = false;
 		}
 
 		if(autoArm) {
-			arm.set(1.0);
+			arm.set(-1.0);
+		} else {
+			arm.set(0.0);
 		}
 
 		if(autoDrive) {
-			rd.tankDrive(1.0, 1.0);
+			fr.set(0.5);
+			fl.set(-0.5);
+			br.set(0.5);
+			bl.set(-0.5);
+		} else {
+			fr.set(0.0);
+			fl.set(0.0);
+			br.set(0.0);
+			bl.set(0.0);
 		}
+    }
+    
+    public void teleopInit() {
+    	shootFlag = false;
+    	shootTime = System.currentTimeMillis();
     }
 
     public void teleopPeriodic() {
@@ -88,24 +113,28 @@ public class Robot extends IterativeRobot {
 			intake.set(0.0);
 		}
 
-		if(lJoy.getRawButton(3)) {
-			shooter.set(-1.0);
-			gatekeeper.set(1.0);
-		} else {
-			shooter.set(0.0);
-			gatekeeper.set(0.0);
-		}
-
-		if(lJoy.getRawButton(5)) {
+		if((lJoy.getRawButton(5) && !gateLimit.get()) || (lJoy.getRawButton(3) && shootFlag && System.currentTimeMillis() - shootTime > 1000)) {
 			gatekeeper.set(1.0);
 		} else if(lJoy.getRawButton(4)) {
 			gatekeeper.set(-1.0);
 		} else {
 			gatekeeper.set(0.0);
 		}
+		
+		if(lJoy.getRawButton(3)) {
+			shooter.set(-1.0);
+			if(!shootFlag) {
+				shootTime = System.currentTimeMillis();
+				shootFlag = true;
+			}
+		} else {
+			shooter.set(0.0);
+			shootTime = System.currentTimeMillis();
+			shootFlag = false;
+		}
 
 		if(rJoy.getRawButton(3)) {
-			arm.set(-1.0);
+			arm.set(1.0);
 		} else if(rJoy.getRawButton(2)) {
 			arm.set(-1.0);
 		} else {
